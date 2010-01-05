@@ -3,3 +3,8 @@
 /Makefile
 /dtrace.d
 /mkmf.log
+/dtrace.h
+/tracing_mechanism.h
+/vm_probes.bundle
+/vm_probes.dll
+/vm_probes.so

@@ -6,23 +6,24 @@ DTRACE = 'dtrace'
 ARCH=$configure_args['with-arch']
 
 def choose_mechanism
-  case model = $configure_args['tracing-mechanism']
+  case mechanism = $configure_args['tracing-mechanism']
   when 'dtrace', nil
-    model = 'dtrace'
+    mechanism = 'dtrace'
     begin
-      $objs = %w[ ruby-probes.o ]
+      $objs = %w[ vm_probes.o ]
       $objs << 'dtrace.o' if dtrace_needs_postprocessor?(ARCH)
     rescue
       message "something wrong in checking dtrace. see mkmf.log\n"
       message $!.message
       exit false
     end
-
     create_dtrace_d
   else
-    message "unknown tracing model #{model}"
+    message "unknown tracing mechanism #{mechanism}"
     exit false
   end
+
+  return mechanism
 end
 
 def create_dtrace_d
@@ -70,21 +71,20 @@ ensure
   rm_f 'dtrace.o'
 end
 
-def append_dtrace_o
-  if $objs.include?('dtrace.o')
-    other_objs = $objs.select{|x| x != 'dtrace.o'}
-    arch_arg = "--arch=#{ARCH}" if ARCH
-    File.open("Makefile", "at"){|f|
-      f.puts "%<dtrace_obj>s: %<objs>s\n\t%<dtrace> -G %<arch_arg> -o $@ -s %<dtrace_d> %<objs>" % {
-        dtrace_obj: RbConfig.expand('dtrace.$(OBJEXT)'),
-        objs: other_objs.join(' '),
-        arch_arg: arch_arg,
-        dtrace_d: 'dtrace.d',
-      }
-    }
-  end
+def prepend_variables(mechanism)
+  makefile = File.read("Makefile")
+  File.open("Makefile", "wt"){|f|
+    f.puts "DTRACE=#{DTRACE}"
+    f.puts "TRACING_MECHANISM=#{mechanism}"
+    f.puts "ARCH_FLAGS=--arch #{ARCH}" if ARCH
+
+    orig_objs = $objs.select{|x| x != "#{mechanism}.o"}
+    f.puts "ORIG_OBJS=#{orig_objs.join(' ')}"
+
+    f.puts(makefile)
+  }
 end
 
-choose_mechanism
-create_makefile('runtime-probes')
-append_dtrace_o
+mechanism = choose_mechanism
+create_makefile('vm_probes')
+prepend_variables(mechanism)

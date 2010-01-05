@@ -1,0 +1,12 @@
+vm_probes.o: tracing_mechanism.h
+tracing_mechanism.h: $(TRACING_MECHANISM)_probes.h mkmf.log
+	cp $(TRACING_MECHANISM)_probes.h $@
+
+dtrace_probes.h: dtrace.h
+dtrace.h: dtrace.d mkmf.log
+	$(DTRACE) -h $(ARCH_FLAGS) -o dtrace.h -s dtrace.d
+dtrace.$(OBJEXT): $(ORIG_OBJS) dtrace.d mkmf.log
+	$(DTRACE) -G $(ARCH_FLAGS) -o $@ -s dtrace.d $(ORIG_OBJS)
+dtrace.d: dtrace.d.erb mkmf.log
+	echo 'please re-run extconf.rb'
+	false

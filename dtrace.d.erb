@@ -1,4 +1,4 @@
-typedef uint<%=bitsize_of_value%>_t VALUE
+typedef uint<%=bitsize_of_value%>_t VALUE;
 provider ruby {
     probe method__entry(VALUE receiver, char *classname, char *methodname, char *sourcefile, int sourceline);
     probe method__return(VALUE receiver, char *classname, char *methodname, char *sourcefile, int sourceline);
@@ -7,7 +7,7 @@ provider ruby {
     probe line(char* sourcefile, int sourceline);
 
     /* gc probes */
-    probe gc__begin();
+    probe gc__start();
     probe gc__end();
 
     /* threads and fibers */
@@ -16,7 +16,7 @@ provider ruby {
     probe thread__leave(VALUE thread, char *sourcefile, int sourceline);
 
     /* Some initial memory type probes */
-    probe object__create(VALUE obj, char *classname, char *sourcefile, int sourceline);
+    probe object__create(VALUE obj, char *sourcefile, int sourceline);
     probe object__free(VALUE obj);
 };
 
