@@ -1,6 +1,14 @@
 #include <ruby/ruby.h>
 #include "tracing_mechanism.h"
 
+#define ALL_EVENTS (RUBY_EVENT_LINE \
+            | RUBY_EVENT_CALL | RUBY_EVENT_RETURN | RUBY_EVENT_C_CALL | RUBY_EVENT_C_RETURN \
+            | RUBY_EVENT_RAISE \
+            | RUBY_EVENT_SWITCH | RUBY_EVENT_TH_INIT | RUBY_EVENT_TH_TERM \
+            | RUBY_EVENT_RESCUE  \
+            | RUBY_EVENT_OBJ_ALLOC | RUBY_EVENT_OBJ_FREE \
+            | RUBY_EVENT_GC_START | RUBY_EVENT_GC_END)
+
 static void
 event_hook(rb_event_flag_t flags, VALUE data, VALUE obj, VALUE id, VALUE klass)
 {
@@ -51,11 +59,14 @@ event_hook(rb_event_flag_t flags, VALUE data, VALUE obj, VALUE id, VALUE klass)
         if (!filename) filename = "<unknown>";
         FIRE_THREAD_LEAVE(obj, filename, line);
     }
-    if ((flags & (RUBY_EVENT_TH_INIT)) && TRACE_THREAD_INIT_ENABLED()) {
-        const char *filename = rb_sourcefile();
-        int line = rb_sourceline();
-        if (!filename) filename = "<unknown>";
-        FIRE_THREAD_INIT(obj, filename, line);
+    if (flags & RUBY_EVENT_TH_INIT) {
+        rb_thread_add_event_hook(obj, event_hook, ALL_EVENTS, Qnil);
+        if (TRACE_THREAD_INIT_ENABLED()) {
+            const char *filename = rb_sourcefile();
+            int line = rb_sourceline();
+            if (!filename) filename = "<unknown>";
+            FIRE_THREAD_INIT(obj, filename, line);
+        }
     }
     if ((flags & (RUBY_EVENT_TH_TERM)) && TRACE_THREAD_TERM_ENABLED()) {
         const char *filename = rb_sourcefile();
@@ -90,14 +101,6 @@ event_hook(rb_event_flag_t flags, VALUE data, VALUE obj, VALUE id, VALUE klass)
 
 void Init_vm_probes()
 {
-    rb_add_event_hook(event_hook, 
-            RUBY_EVENT_LINE 
-            | RUBY_EVENT_CALL | RUBY_EVENT_RETURN | RUBY_EVENT_C_CALL | RUBY_EVENT_C_RETURN
-            | RUBY_EVENT_RAISE
-            | RUBY_EVENT_SWITCH | RUBY_EVENT_TH_INIT | RUBY_EVENT_TH_TERM
-            | RUBY_EVENT_RESCUE 
-            | RUBY_EVENT_OBJ_ALLOC | RUBY_EVENT_OBJ_FREE
-            | RUBY_EVENT_GC_START | RUBY_EVENT_GC_END,
-            Qnil);
+    rb_add_event_hook(event_hook, ALL_EVENTS, Qnil);
 }
 
