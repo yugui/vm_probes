@@ -13,7 +13,7 @@ def choose_mechanism
       $objs = %w[ ruby-probes.o ]
       $objs << 'dtrace.o' if dtrace_needs_postprocessor?(ARCH)
     rescue
-      message "something wrong in checking dtrace. see config.log\n"
+      message "something wrong in checking dtrace. see mkmf.log\n"
       message $!.message
       exit false
     end
