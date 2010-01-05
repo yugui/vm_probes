@@ -50,6 +50,20 @@ def dtrace_needs_postprocessor?(arch)
       message "failed to run dtrace -h" 
       exit false
     end
+
+    unless try_compile(<<-EOS, "$(COUTFLAG)conftest.$(OBJEXT)")
+#include "dtrace_conftest.h"
+int main() {
+  return 0;
+}
+    EOS
+      message "failed to compile a test program" 
+      exit false
+    end
+    unless xsystem(RbConfig.expand("#{DTRACE} #{arch_arg} -G -o dtrace.o conftest.$(OBJEXT)"))
+      return $dtrace_needs_postprocessor = false
+    end
+
     unless try_compile(<<-EOS, "$(COUTFLAG)conftest.$(OBJEXT)")
 #include "dtrace_conftest.h"
 int main() {
@@ -62,7 +76,11 @@ int main() {
       message "failed to compile a test program" 
       exit false
     end
-    return $dtrace_needs_postprocessor = xsystem(RbConfig.expand("#{DTRACE} #{arch_arg} -G -o dtrace.o conftest.$(OBJEXT)"))
+    unless xsystem(RbConfig.expand("#{DTRACE} #{arch_arg} -G -o dtrace.o conftest.$(OBJEXT)"))
+      message "dtrace USDT is broken"
+      exit false
+    end
+    return $dtrace_needs_postprocessor = true
   }
 
   raise "never reached"
